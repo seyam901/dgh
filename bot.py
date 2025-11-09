@@ -5,8 +5,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import requests
 import asyncio
 
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-ADMIN_ID = 123456789  # <-- তোমার Telegram numeric ID
+TOKEN = "8475035371:AAEHrLg27kR8_g-vCROvMVrbfoSixCXaxcA"
+ADMIN_ID = 5997715263  # <-- তোমার Telegram numeric ID
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
