@@ -5,14 +5,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import requests
 import asyncio
 
-TOKEN = "8475035371:AAEHrLg27kR8_g-vCROvMVrbfoSixCXaxcA"
-ADMIN_ID = 5997715263  # <-- তোমার Telegram numeric ID
+TOKEN = os.getenv("TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 app = FastAPI()
 
-# --- VIDEO API (ytmp3 / tiktok / etc) ---
+
+# --- VIDEO DOWNLOAD API ---
 def fetch_video(url):
     try:
         api = f"https://ytmp3.as/tikmp4?url={url}"
@@ -24,69 +25,62 @@ def fetch_video(url):
         return None, None
 
 
-# === FASTAPI KEEP-ALIVE ===
 @app.get("/")
-def home():
-    return {"status": "running"}
+def alive():
+    return {"status": "running", "bot": "✅ online"}
 
 
-# === START COMMAND ===
 @dp.message(commands=["start"])
 async def start(message: types.Message):
     kb = InlineKeyboardBuilder()
-    kb.button(text="➕ Add bot to group", url=f"https://t.me/{(await bot.get_me()).username}?startgroup=true")
-    kb.button(text="💬 Developer", url="https://t.me/YOUR_USERNAME")
+    kb.button(text="➕ Add to group", url=f"https://t.me/{(await bot.get_me()).username}?startgroup=true")
+    kb.button(text="👨‍💻 Developer", url="https://t.me/YOUR_USERNAME")
 
     await message.answer(
         f"👋 Hi {message.from_user.full_name}!\n\n"
-        "🎥 Just send me any **Video URL** (TikTok, YouTube, IG, FB)\n"
-        "I will download it for you ✅",
+        "✅ Send any video link:\n"
+        "• TikTok\n• YouTube\n• Facebook\n• Instagram\n\n"
+        "⚡ I’ll download it for you!",
         reply_markup=kb.as_markup()
     )
 
 
-# === BROADCAST (admin only) ===
 @dp.message(commands=["broadcast"])
 async def broadcast(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         return await message.reply("❌ You are not admin.")
 
     text = message.text.replace("/broadcast ", "")
-    count = 0
+    await message.answer("📢 Broadcasting...")
 
-    async for user in bot.get_chat_members(chat_id=message.chat.id):
+    async for dialog in bot.get_dialogs():
         try:
-            await bot.send_message(user.user.id, text)
-            count += 1
+            await bot.send_message(dialog.chat.id, text)
         except:
             pass
 
-    await message.reply(f"✅ Successfully sent to `{count}` users.")
+    await message.answer("✅ Broadcast completed!")
 
 
-# === DOWNLOAD VIDEO ===
 @dp.message()
 async def download(message: types.Message):
     url = message.text.strip()
-
-    await message.reply("⏳ Fetching video... Please wait...")
+    wait_msg = await message.reply("⏳ Fetching video...")
 
     video_url, title = fetch_video(url)
 
     if video_url:
-        await bot.send_video(
-            chat_id=message.chat.id,
-            video=video_url,
-            caption=f"✅ **Downloaded Successfully!**\n🎬 Title: `{title}`"
-        )
+        await message.reply_video(video_url, caption=f"✅ Downloaded\n🎬 `{title}`")
     else:
-        await message.reply("❌ Failed to fetch video. Make sure URL is correct.")
+        await message.reply("❌ Video download failed!")
+
+    await wait_msg.delete()
 
 
-# === START THE BOT ===
 async def main():
     async with bot:
         await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
